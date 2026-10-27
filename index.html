@@ -3,46 +3,114 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reaction Speed Test</title>
+    <title>Reaction Study</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main class="app">
       <header class="header">
-        <p class="eyebrow">Challenge</p>
-        <h1>Reaction Speed Test</h1>
+        <h1>Reaction-time study</h1>
       </header>
 
+      <section class="study-status" aria-live="polite">
+        <div>
+          <span class="label">Stage</span>
+          <strong id="stageName">Ready to begin</strong>
+        </div>
+        <div>
+          <span class="label">Progress</span>
+          <strong id="progress">0 / 10</strong>
+        </div>
+
+      </section>
+
+<p id="instructions" class="instructions">
+  Complete each stage in order. Respond only when the instructions say to.
+</p>
+
+      <nav id="stageTabs" class="stage-tabs" aria-label="Study stages">
+        <button class="stage-tab active" type="button" data-stage="0">1. Control</button>
+        <button class="stage-tab" type="button" data-stage="1">2. Selective response</button>
+        <button class="stage-tab" type="button" data-stage="2">3. Three-colour response</button>
+      </nav>
+
+      <section id="stageIntro" class="stage-intro" aria-live="polite" hidden>
+        <p class="eyebrow">Stage briefing</p>
+        <h2 id="stageIntroTitle"></h2>
+        <p id="stageIntroText"></p>
+        <button id="continueBtn" class="primary-btn" type="button">Begin this stage</button>
+      </section>
+
       <div class="controls">
-        <button id="startBtn" class="primary-btn">Start test</button>
-        <button id="downloadCsvBtn" class="secondary-btn" type="button">Download CSV</button>
-        <button id="resetBtn" class="secondary-btn">Reset stats</button>
+        <button id="startBtn" class="primary-btn" type="button">Start study</button>
+        <button id="stopBtn" class="secondary-btn" type="button" disabled>Stop study</button>
+        <button id="downloadTrialsBtn" class="secondary-btn" type="button" disabled>Download trial CSV</button>
+        <button id="downloadSummaryBtn" class="secondary-btn" type="button" disabled>Download summary CSV</button>
+        <button id="resetBtn" class="secondary-btn" type="button">Reset</button>
       </div>
 
-      <div id="gameArea" class="game-area waiting" role="button" tabindex="0" aria-label="Reaction game area">
-        <span id="gameText">Press Start</span>
+      <details class="researcher-controls">
+        <summary aria-label="Open researcher controls" title="Researcher controls">⚙</summary>
+        <div class="researcher-grid">
+          <label>
+            Pre-stimulus minimum (ms)
+            <input id="minDelayInput" type="range" min="0" max="5000" step="100" value="1500" />
+            <output id="minDelayValue" for="minDelayInput">1500 ms</output>
+          </label>
+          <label>
+            Pre-stimulus maximum (ms)
+            <input id="maxDelayInput" type="range" min="0" max="10000" step="100" value="3500" />
+            <output id="maxDelayValue" for="maxDelayInput">3500 ms</output>
+          </label>
+          <label>
+            Repeat delay (ms)
+            <input id="repeatDelayInput" type="range" min="0" max="5000" step="100" value="0" />
+            <output id="repeatDelayValue" for="repeatDelayInput">0 ms</output>
+          </label>
+          <label>
+            Red observation (ms)
+            <input id="redDurationInput" type="range" min="100" max="5000" step="100" value="1000" />
+            <output id="redDurationValue" for="redDurationInput">1000 ms</output>
+          </label>
+          <label>
+            Stage 1 repetitions
+            <input id="stage1RepeatsInput" type="range" min="1" max="50" step="1" value="10" />
+            <output id="stage1RepeatsValue" for="stage1RepeatsInput">10</output>
+          </label>
+          <label>
+            Stage 2 repetitions
+            <input id="stage2RepeatsInput" type="range" min="1" max="50" step="1" value="10" />
+            <output id="stage2RepeatsValue" for="stage2RepeatsInput">10</output>
+          </label>
+          <label>
+            Stage 3 repetitions
+            <input id="stage3RepeatsInput" type="range" min="1" max="50" step="1" value="10" />
+            <output id="stage3RepeatsValue" for="stage3RepeatsInput">10</output>
+          </label>
+          <button id="skipStageBtn" class="secondary-btn" type="button">Skip current stage</button>
+          <button id="stopStageBtn" class="secondary-btn" type="button">Stop current stage</button>
+        </div>
+        <p class="note">Changing stages or stopping a stage cancels any active stimulus. Existing records are retained.</p>
+      </details>
+
+      <div id="gameArea" class="game-area idle" role="application" aria-label="Reaction target">
+        <span id="gameText">Press Start study</span>
       </div>
 
-      <section class="stats" aria-live="polite">
-        <div class="stat-card">
-          <span class="label">Last</span>
-          <strong id="lastTime">--</strong>
+      <p id="feedback" class="feedback" aria-live="polite"></p>
+
+      <section id="resultsSection" hidden>
+        <h2>Results</h2>
+        <div class="chart-container">
+          <canvas id="stageChart" aria-label="Average reaction time and variation by stage"></canvas>
         </div>
-        <div class="stat-card">
-          <span class="label">Best</span>
-          <strong id="bestTime">--</strong>
-        </div>
-        <div class="stat-card">
-          <span class="label">Average</span>
-          <strong id="averageTime">--</strong>
-        </div>
-        <div class="stat-card">
-          <span class="label">Attempts</span>
-          <strong id="attemptCount">0</strong>
+        <div id="summary" class="summary" aria-live="polite">
+          <p>Results will appear after the study is complete.</p>
         </div>
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
