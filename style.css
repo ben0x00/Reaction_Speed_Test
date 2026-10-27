@@ -33,8 +33,40 @@ body {
   border-radius: 12px;
 }
 
+:fullscreen {
+  background: var(--background);
+}
+
+:fullscreen .app {
+  width: min(100%, 1200px);
+  min-height: 100vh;
+  border-radius: 0;
+}
+
 .header {
+  position: relative;
   text-align: center;
+}
+
+.header h1 {
+  padding: 0 110px;
+}
+
+.fullscreen-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.fullscreen-btn span:first-child {
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 .eyebrow,
@@ -207,6 +239,14 @@ h2 {
   margin-bottom: 16px;
 }
 
+.download-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
 button {
   padding: 10px 14px;
   border: 1px solid var(--border);
@@ -314,6 +354,14 @@ th {
 @media (max-width: 650px) {
   .app {
     padding: 20px 14px;
+  }
+
+  .header h1 {
+    padding: 0 48px;
+  }
+
+  .fullscreen-label {
+    display: none;
   }
 
   .game-area {

@@ -1,5 +1,6 @@
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
 const downloadTrialsBtn = document.getElementById('downloadTrialsBtn');
 const downloadSummaryBtn = document.getElementById('downloadSummaryBtn');
 const gameArea = document.getElementById('gameArea');
@@ -494,6 +495,8 @@ function renderChart() {
       label: stage.name.replace(/^Stage \d+: /, ''),
       average: Number(stats.average) || 0,
       deviation: Number(stats.deviation) || 0,
+      highest: Number(stats.highest) || 0,
+      lowest: Number(stats.lowest) || 0,
     };
   });
 
@@ -509,6 +512,59 @@ function renderChart() {
     stageChart.destroy();
   }
 
+  const statisticsOverlay = {
+    id: 'statisticsOverlay',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales } = chart;
+      const yScale = scales.y;
+      const bars = chart.getDatasetMeta(0).data;
+
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+
+      stageRows.forEach((row, index) => {
+        const bar = bars[index];
+        if (!bar) {
+          return;
+        }
+
+        const x = bar.x;
+        const averageY = yScale.getPixelForValue(row.average);
+        const deviationTopY = yScale.getPixelForValue(row.average + row.deviation);
+        const deviationBottomY = yScale.getPixelForValue(Math.max(0, row.average - row.deviation));
+        const maxY = yScale.getPixelForValue(row.highest);
+        const minY = yScale.getPixelForValue(row.lowest);
+
+        ctx.strokeStyle = '#ef5350';
+        ctx.beginPath();
+        ctx.moveTo(x, deviationTopY);
+        ctx.lineTo(x, deviationBottomY);
+        ctx.moveTo(x - 7, deviationTopY);
+        ctx.lineTo(x + 7, deviationTopY);
+        ctx.moveTo(x - 7, deviationBottomY);
+        ctx.lineTo(x + 7, deviationBottomY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f5a623';
+        ctx.beginPath();
+        ctx.moveTo(x, maxY - 7);
+        ctx.lineTo(x + 7, maxY + 5);
+        ctx.lineTo(x - 7, maxY + 5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#28c76f';
+        ctx.beginPath();
+        ctx.arc(x, minY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.restore();
+    },
+  };
+
   stageChart = new Chart(stageChartCanvas, {
     type: 'bar',
     data: {
@@ -519,34 +575,63 @@ function renderChart() {
           data: stageRows.map((row) => row.average),
           backgroundColor: '#1769aa',
         },
-        {
-          type: 'line',
-          label: 'Variation (standard deviation, ms)',
-          data: stageRows.map((row) => row.deviation),
-          borderColor: '#ef5350',
-          backgroundColor: '#ef5350',
-          tension: 0.2,
-          yAxisID: 'variation',
-        },
       ],
     },
+    plugins: [statisticsOverlay],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        subtitle: {
+          display: true,
+          text: 'Bars: average | whiskers: error variance | triangles: maximum | dots: minimum',
+          color: '#5f6b76',
+          padding: { bottom: 12 },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => `Average: ${context.parsed.y.toFixed(1)} ms`,
+            afterLabel: (context) => {
+              const row = stageRows[context.dataIndex];
+              return [
+                `Error variance: ±${row.deviation.toFixed(1)} ms`,
+                `Maximum: ${row.highest.toFixed(1)} ms`,
+                `Minimum: ${row.lowest.toFixed(1)} ms`,
+              ];
+            },
+          },
+        },
+      },
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Average reaction time (ms)' },
-        },
-        variation: {
-          beginAtZero: true,
-          position: 'right',
-          grid: { drawOnChartArea: false },
-          title: { display: true, text: 'Variation (ms)' },
+          suggestedMax: Math.max(...stageRows.flatMap((row) => [row.highest, row.average + row.deviation])) * 1.1,
+          title: { display: true, text: 'Reaction time (ms)' },
         },
       },
     },
   });
+}
+
+function updateFullscreenButton() {
+  const isFullscreen = document.fullscreenElement !== null;
+  const label = isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen';
+  fullscreenBtn.setAttribute('aria-label', label);
+  fullscreenBtn.title = label;
+  fullscreenBtn.querySelector('.fullscreen-label').textContent = isFullscreen ? 'Exit' : 'Fullscreen';
+}
+
+async function toggleFullscreen() {
+  if (!document.fullscreenEnabled) {
+    feedback.textContent = 'Fullscreen is not available in this browser.';
+    return;
+  }
+
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  } else {
+    await document.documentElement.requestFullscreen();
+  }
 }
 
 function csvCell(value) {
@@ -571,7 +656,20 @@ function downloadTrials() {
 }
 
 function downloadSummary() {
-  downloadCsv('reaction-study-summary.csv', ['stage', 'colour', 'average_ms', 'highest_ms', 'lowest_ms', 'deviation_ms'], summaryRows().map((row) => [
+  const rows = stages.flatMap((stage) => {
+    const stageRecords = reactionRecords().filter((record) => record.stage === stage.id);
+    const records = stage.id === 'discrimination'
+      ? stageRecords.filter((record) => ['green', 'blue'].includes(record.colour))
+      : stageRecords;
+    const stats = calculateStats(records);
+    return [{
+      stage: stage.id,
+      colour: stage.id === 'discrimination' ? 'combined' : Object.keys(stage.required)[0],
+      ...stats,
+    }];
+  });
+
+  downloadCsv('reaction-study-summary.csv', ['stage', 'colour', 'average_ms', 'highest_ms', 'lowest_ms', 'deviation_ms'], rows.map((row) => [
     row.stage, row.colour, row.average, row.highest, row.lowest, row.deviation,
   ]));
 }
@@ -596,6 +694,12 @@ stageTabs.forEach((tab) => tab.addEventListener('click', () => setStage(Number(t
 continueBtn.addEventListener('click', continueStage);
 downloadTrialsBtn.addEventListener('click', downloadTrials);
 downloadSummaryBtn.addEventListener('click', downloadSummary);
+fullscreenBtn.addEventListener('click', () => {
+  toggleFullscreen().catch(() => {
+    feedback.textContent = 'Fullscreen could not be changed.';
+  });
+});
+document.addEventListener('fullscreenchange', updateFullscreenButton);
 document.addEventListener('keydown', handleResponse);
 
 resetStudy(true);

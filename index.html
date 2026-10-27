@@ -10,6 +10,10 @@
     <main class="app">
       <header class="header">
         <h1>Reaction-time study</h1>
+        <button id="fullscreenBtn" class="fullscreen-btn" type="button" aria-label="Enter fullscreen" title="Enter fullscreen">
+          <span aria-hidden="true">⛶</span>
+          <span class="fullscreen-label">Fullscreen</span>
+        </button>
       </header>
 
       <section class="study-status" aria-live="polite">
@@ -44,8 +48,6 @@
       <div class="controls">
         <button id="startBtn" class="primary-btn" type="button">Start study</button>
         <button id="stopBtn" class="secondary-btn" type="button" disabled>Stop study</button>
-        <button id="downloadTrialsBtn" class="secondary-btn" type="button" disabled>Download trial CSV</button>
-        <button id="downloadSummaryBtn" class="secondary-btn" type="button" disabled>Download summary CSV</button>
         <button id="resetBtn" class="secondary-btn" type="button">Reset</button>
       </div>
 
@@ -102,10 +104,14 @@
       <section id="resultsSection" hidden>
         <h2>Results</h2>
         <div class="chart-container">
-          <canvas id="stageChart" aria-label="Average reaction time and variation by stage"></canvas>
+          <canvas id="stageChart" aria-label="Average, error variance, maximum, and minimum reaction time by stage"></canvas>
         </div>
         <div id="summary" class="summary" aria-live="polite">
           <p>Results will appear after the study is complete.</p>
+        </div>
+        <div class="download-actions">
+          <button id="downloadTrialsBtn" class="secondary-btn" type="button" disabled>Download trial CSV</button>
+          <button id="downloadSummaryBtn" class="secondary-btn" type="button" disabled>Download summary CSV</button>
         </div>
       </section>
     </main>
