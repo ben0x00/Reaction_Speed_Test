@@ -38,6 +38,34 @@ const sliderValues = [
   ...stageRepeatInputs.map((input, index) => [input, document.getElementById(`stage${index + 1}RepeatsValue`)]),
 ];
 
+const jumpscareVideo = document.createElement('video');
+jumpscareVideo.id = 'jumpscareVideo';
+jumpscareVideo.className = 'jumpscare-video';
+jumpscareVideo.playsInline = true;
+jumpscareVideo.preload = 'auto';
+jumpscareVideo.controls = false;
+jumpscareVideo.loop = false;
+jumpscareVideo.setAttribute('aria-hidden', 'true');
+
+const jumpscareSources = ['./video.mp4', 'file:///Users/ben/Downloads/video.mp4'];
+const jumpscareSource = document.createElement('source');
+jumpscareSource.src = jumpscareSources[0];
+jumpscareSource.type = 'video/mp4';
+jumpscareVideo.appendChild(jumpscareSource);
+jumpscareVideo.addEventListener('error', () => {
+  if (jumpscareVideo.dataset.fallbackUsed === 'true') {
+    return;
+  }
+
+  jumpscareVideo.dataset.fallbackUsed = 'true';
+  const fallbackSource = document.createElement('source');
+  fallbackSource.src = jumpscareSources[1];
+  fallbackSource.type = 'video/mp4';
+  jumpscareVideo.replaceChildren(fallbackSource);
+  jumpscareVideo.load();
+});
+gameArea.appendChild(jumpscareVideo);
+
 const stages = [
   {
     id: 'control',
@@ -77,6 +105,8 @@ const state = {
   currentTrial: 0,
   trialId: 0,
   countdownRemaining: 0,
+  jumpscareTriggered: false,
+  jumpscareTargetTrial: null,
 };
 
 function settings() {
@@ -222,10 +252,45 @@ function isStageComplete() {
   return completedTotal >= stageRepeatCount(state.stageIndex);
 }
 
+function maybeTriggerJumpscare() {
+  if (state.jumpscareTriggered || state.stageIndex !== 2 || state.jumpscareTargetTrial === null) {
+    return;
+  }
+
+  if (state.currentTrial !== state.jumpscareTargetTrial) {
+    return;
+  }
+
+  state.jumpscareTriggered = true;
+  gameArea.classList.add('jumpscare');
+  jumpscareVideo.currentTime = 0;
+  jumpscareVideo.style.display = 'block';
+  jumpscareVideo.play().catch(() => {});
+  feedback.textContent = 'Unexpected stimulus!';
+  setPhase('feedback', 'Unexpected stimulus');
+  const overlay = document.createElement('div');
+  overlay.className = 'jumpscare-overlay';
+  gameArea.appendChild(overlay);
+  setTimeout(() => {
+    overlay.remove();
+    jumpscareVideo.style.display = 'none';
+    gameArea.classList.remove('jumpscare');
+    if (state.phase === 'feedback') {
+      setPhase('ready', 'Stimulus', state.currentColour);
+    }
+  }, 1800);
+}
+
 function beginStimulus() {
   const stage = currentStage();
   state.currentColour = stage.colours[Math.floor(Math.random() * stage.colours.length)];
   state.currentTrial += 1;
+
+  if (stage.id === 'discrimination' && state.jumpscareTargetTrial === null) {
+    const totalStageTrials = stageRepeatCount(state.stageIndex);
+    state.jumpscareTargetTrial = 1 + Math.floor(Math.random() * Math.max(1, totalStageTrials - 1));
+  }
+
   setPhase('waiting', `Trial ${state.currentTrial}`, null);
   updateStatus();
 
@@ -239,6 +304,10 @@ function beginStimulus() {
         state.timerId = null;
         finishNoPress();
       }, settings().redDuration);
+    }
+
+    if (stage.id === 'discrimination') {
+      maybeTriggerJumpscare();
     }
   }, randomDelay());
 }
@@ -387,6 +456,12 @@ function resetStudy(showIntro = false) {
   state.currentTrial = 0;
   state.trialId = 0;
   state.countdownRemaining = 0;
+  state.jumpscareTriggered = false;
+  state.jumpscareTargetTrial = null;
+  jumpscareVideo.pause();
+  jumpscareVideo.currentTime = 0;
+  jumpscareVideo.style.display = 'none';
+  gameArea.classList.remove('jumpscare');
   updateStudyControls(false);
   downloadTrialsBtn.disabled = true;
   downloadSummaryBtn.disabled = true;
@@ -410,6 +485,11 @@ function stopStudy() {
   stageIntro.hidden = true;
   state.phase = 'stopped';
   state.currentColour = null;
+  state.jumpscareTriggered = false;
+  state.jumpscareTargetTrial = null;
+  jumpscareVideo.pause();
+  jumpscareVideo.style.display = 'none';
+  gameArea.classList.remove('jumpscare');
   setPhase('stopped', 'Study stopped');
   feedback.textContent = 'Study stopped by researcher. Press Resume study to continue.';
   startBtn.textContent = 'Resume study';
@@ -431,6 +511,11 @@ function stopCurrentStage() {
   stageIntro.hidden = true;
   state.phase = 'stopped';
   state.currentColour = null;
+  state.jumpscareTriggered = false;
+  state.jumpscareTargetTrial = null;
+  jumpscareVideo.pause();
+  jumpscareVideo.style.display = 'none';
+  gameArea.classList.remove('jumpscare');
   setPhase('stopped', 'Stage stopped');
   feedback.textContent = 'Current stage stopped. Select another stage or press Resume study.';
   startBtn.textContent = 'Resume study';

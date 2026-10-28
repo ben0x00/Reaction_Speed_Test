@@ -315,6 +315,28 @@ button:disabled {
   color: #1b5e20;
 }
 
+.game-area.jumpscare {
+  position: relative;
+  overflow: hidden;
+}
+
+.jumpscare-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  z-index: 4;
+}
+
+.jumpscare-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  z-index: 3;
+}
+
 .feedback {
   min-height: 22px;
   color: var(--muted);
